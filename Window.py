@@ -1,7 +1,7 @@
 from Environment import Environment
 import pygame as pyg
 
-WINDOW_SIZE = (1000, 400)
+WINDOW_SIZE = (1000, 600)
 WHITE = (255, 255, 255)
 
 screen = pyg.display.set_mode(WINDOW_SIZE)
@@ -10,12 +10,8 @@ screen.fill(WHITE)
 pyg.display.set_caption("Test")
 pyg.display.flip()
 
-
-
-
-            
 env = Environment(*WINDOW_SIZE)
-env.addRandParticle(100)
+env.addRandParticle(30)
 
 running = True
 while running:
