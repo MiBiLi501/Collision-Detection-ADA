@@ -5,23 +5,27 @@ import random
 import sys
 
 
+def getX(particle):
+    return particle.x
+
+
+def getY(particle):
+    return particle.y
+
+
 def bruteForce(particles):
-    for i, particle in enumerate(particles):
-        particle.move()
-        for particle2 in particles[i+1:]:
-            collide(particle, particle2)
+    length = len(particles)
+    for i in range(length-1):
+        for j in range(i+1, length):
+            collide(particles[i], particles[j])
 
 
-def kDTree(particles, depth=0):
+def buildkDTree(particles, depth=0, debug=0):
     if len(particles) <= 1:
-        return
+        return []
 
-    if len(particles) == 2:
-        bruteForce(particles)
-        return
-
-    get_attribute_func = (lambda particle: particle.y) if depth & 1 else (
-        lambda particle: particle.x)
+    get_attribute_func = (getY) if depth & 1 else (
+        getX)
     sorted_particles = sorted(particles, key=get_attribute_func)
     length = len(sorted_particles)
     if length & 1:
@@ -30,8 +34,8 @@ def kDTree(particles, depth=0):
         median = (get_attribute_func(
             sorted_particles[length//2]) + get_attribute_func(sorted_particles[length//2 - 1])) / 2
 
-    leftSide = list()
-    rightSide = list()
+    leftSide = []
+    rightSide = []
 
     for particle in sorted_particles:
         if (get_attribute_func(particle) - particle.size <= median):
@@ -39,25 +43,28 @@ def kDTree(particles, depth=0):
         if (get_attribute_func(particle) + particle.size >= median):
             rightSide.append(particle)
 
-    stop = True
-    if length == len(leftSide):
-        for i in range(length):
-            if sorted_particles[i] is not leftSide[-i]:
-                stop = False
-                break
+    if len(leftSide) == length or len(rightSide) == length:
+        return [sorted_particles]
 
-    if length == len(rightSide) and not stop:
-        for i in range(length):
-            if sorted_particles[i] is not rightSide[-i]:
-                stop = False
-                break
+    potential_collisions = [
+        potential_collision for potential_collision in buildkDTree(leftSide, depth+1)]
+    potential_collisions.extend(
+        [potential_collision for potential_collision in buildkDTree(rightSide, depth+1)])
+    return potential_collisions
 
-    if stop:
-        bruteForce(particles)
-        return
 
-    kDTree(leftSide, depth+1)
-    kDTree(rightSide, depth+1)
+def kDTree(particles):
+    potential_collisions = buildkDTree(particles)
+    applied_collisions = set()
+    for potential_collision in potential_collisions:
+        length = len(potential_collision)
+        for i in range(length - 1):
+            for j in range(i+1, length):
+                if frozenset([potential_collision[i], potential_collision[j]]) in applied_collisions:
+                    continue
+                collide(potential_collision[i], potential_collision[j])
+                applied_collisions.add(
+                    frozenset([potential_collision[i], potential_collision[j]]))
 
 
 def collide(p1, p2):
@@ -96,6 +103,9 @@ class Environment:
 
         self.color = (255, 255, 255)
         self.elasticity = 1
+
+        self.lineX = []
+        self.lineY = []
 
     def addRandParticle(self, n):
         for _ in range(n):
@@ -163,7 +173,7 @@ class Environment:
             p.move()
             self.bounce(p)
 
-        self.collisionDetection(kDTree)
+        self.collisionDetection()
 
-    def collisionDetection(self, func):
+    def collisionDetection(self, func=bruteForce):
         func(self.particles)
