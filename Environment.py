@@ -4,7 +4,6 @@ from Particle import Particle
 import random
 import sys
 
-
 def getX(particle):
     return particle.x
 
@@ -28,11 +27,12 @@ def buildkDTree(particles, depth=0, debug=0):
         getX)
     sorted_particles = sorted(particles, key=get_attribute_func)
     length = len(sorted_particles)
+    mid = length//2
     if length & 1:
-        median = get_attribute_func(sorted_particles[length//2])
+        median = get_attribute_func(sorted_particles[mid])
     else:
         median = (get_attribute_func(
-            sorted_particles[length//2]) + get_attribute_func(sorted_particles[length//2 - 1])) / 2
+            sorted_particles[mid]) + get_attribute_func(sorted_particles[mid - 1])) / 2
 
     leftSide = []
     rightSide = []
@@ -60,14 +60,14 @@ def kDTree(particles):
         length = len(potential_collision)
         for i in range(length - 1):
             for j in range(i+1, length):
-                if frozenset([potential_collision[i], potential_collision[j]]) in applied_collisions:
+                if frozenset((potential_collision[i], potential_collision[j])) in applied_collisions:
                     continue
                 collide(potential_collision[i], potential_collision[j])
                 applied_collisions.add(
-                    frozenset([potential_collision[i], potential_collision[j]]))
+                    frozenset((potential_collision[i], potential_collision[j])))
 
 
-def collide(p1, p2):
+def collide(p1, p2, debug = 1):
     dx = p1.x - p2.x
     dy = p1.y - p2.y
 
@@ -94,6 +94,12 @@ def collide(p1, p2):
         p1.vx, p1.vy = v1
         p2.vx, p2.vy = v2
 
+        if debug:
+            print("hit")
+
+        return True
+    return False
+
 
 class Environment:
     def __init__(self, width, height):
@@ -106,6 +112,8 @@ class Environment:
 
         self.lineX = []
         self.lineY = []
+
+        self.pause = False
 
     def addRandParticle(self, n):
         for _ in range(n):
@@ -169,11 +177,14 @@ class Environment:
             particle.speed *= self.elasticity
 
     def update(self):
+        if self.pause:
+            return
+        
         for p in self.particles:
             p.move()
             self.bounce(p)
 
-        self.collisionDetection()
+        self.collisionDetection(kDTree)
 
     def collisionDetection(self, func=bruteForce):
         func(self.particles)
