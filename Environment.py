@@ -86,21 +86,21 @@ def buildkDTree(particles, depth=0, *, debug=0):
 
 
 def kDTree(particles):
-    potential_collisions = buildkDTree(particles, multithread=True)
-    applied_collisions = set()
+    potential_collisions = buildkDTree(particles)
+    collisions = set()
     for potential_collision in potential_collisions:
         length = len(potential_collision)
         for i in range(length - 1):
             for j in range(i+1, length):
-                if frozenset((potential_collision[i], potential_collision[j])) in applied_collisions:
-                    continue
-                collide(potential_collision[i], potential_collision[j])
-                applied_collisions.add(
+                collisions.add(
                     frozenset((potential_collision[i], potential_collision[j])))
+    
+    for obj1, obj2 in collisions:
+        collide(obj1, obj2)
 
 
 def sweepAndPrune(particles):
-        sorted_particles = sorted(particles, key=lambda p: p.x)
+        sorted_particles = sorted(particles, key=getX)
         length = len(sorted_particles)
 
         potential_collisions = set()
