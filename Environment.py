@@ -11,6 +11,38 @@ def getX(particle):
 def getY(particle):
     return particle.y
 
+def collide(p1, p2, debug = 1):
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
+
+    dist = math.hypot(dx, dy)
+    if dist - p1.size - p2.size - sys.float_info.epsilon < 0:
+
+        # get unit normal vector
+        n = np.array([p2.x-p1.x, p2.y-p1.y])
+        n /= dist
+
+        # get unit tangent vector
+        t = np.array([-n[1], n[0]])
+
+        v1 = np.array([p1.vx, p1.vy])
+        v2 = np.array([p2.vx, p2.vy])
+
+        v1n = n.dot(v1)
+        v1t = t.dot(v1)
+
+        v2n = n.dot(v2)
+        v2t = t.dot(v2)
+
+        v1, v2 = n*v2n + v1t*t, n*v1n + v2t * t
+        p1.vx, p1.vy = v1
+        p2.vx, p2.vy = v2
+
+        if debug:
+            print("hit")
+
+        return True
+    return False
 
 def bruteForce(particles):
     length = len(particles)
@@ -19,7 +51,7 @@ def bruteForce(particles):
             collide(particles[i], particles[j])
 
 
-def buildkDTree(particles, depth=0, debug=0):
+def buildkDTree(particles, depth=0, *, debug=0):
     if len(particles) <= 1:
         return []
 
@@ -54,7 +86,7 @@ def buildkDTree(particles, depth=0, debug=0):
 
 
 def kDTree(particles):
-    potential_collisions = buildkDTree(particles)
+    potential_collisions = buildkDTree(particles, multithread=True)
     applied_collisions = set()
     for potential_collision in potential_collisions:
         length = len(potential_collision)
@@ -67,39 +99,19 @@ def kDTree(particles):
                     frozenset((potential_collision[i], potential_collision[j])))
 
 
-def collide(p1, p2, debug = 1):
-    dx = p1.x - p2.x
-    dy = p1.y - p2.y
+def sweepAndPrune(particles):
+        sorted_particles = sorted(particles, key=lambda p: p.x)
+        length = len(sorted_particles)
 
-    dist = math.hypot(dx, dy)
-    if dist - p1.size - p2.size - sys.float_info.epsilon < 0:
+        potential_collisions = set()
+        for i in range(length):
+            for j in range(i + 1, length):
+                if sorted_particles[j].x - sorted_particles[i].x > sorted_particles[i].size + sorted_particles[j].size:
+                    break 
+                potential_collisions.add(frozenset((sorted_particles[i], sorted_particles[j])))
 
-        # get unit normal vector
-        n = np.array([p2.x-p1.x, p2.y-p1.y])
-        n /= dist
-
-        # get unit tangent vector
-        t = np.array([-n[1], n[0]])
-
-        v1 = np.array([p1.vx, p1.vy])
-        v2 = np.array([p2.vx, p2.vy])
-
-        v1n = n.dot(v1)
-        v1t = t.dot(v1)
-
-        v2n = n.dot(v2)
-        v2t = t.dot(v2)
-
-        v1, v2 = n*v2n + v1t*t, n*v1n + v2t * t
-        p1.vx, p1.vy = v1
-        p2.vx, p2.vy = v2
-
-        if debug:
-            print("hit")
-
-        return True
-    return False
-
+        for p1, p2 in potential_collisions:
+            collide(p1, p2)
 
 class Environment:
     def __init__(self, width, height):
@@ -184,7 +196,7 @@ class Environment:
             p.move()
             self.bounce(p)
 
-        self.collisionDetection(kDTree)
+        self.collisionDetection(sweepAndPrune)
 
     def collisionDetection(self, func=bruteForce):
         func(self.particles)
