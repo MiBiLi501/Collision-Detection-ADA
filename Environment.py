@@ -103,12 +103,12 @@ def sweepAndPrune(particles):
         sorted_particles = sorted(particles, key=getX)
         length = len(sorted_particles)
 
-        potential_collisions = set()
-        for i in range(length):
+        potential_collisions = []
+        for i in range(length-1):
             for j in range(i + 1, length):
-                if sorted_particles[j].x - sorted_particles[i].x > sorted_particles[i].size + sorted_particles[j].size:
-                    break 
-                potential_collisions.add(frozenset((sorted_particles[i], sorted_particles[j])))
+                if sorted_particles[j].x - sorted_particles[i].x >= sorted_particles[i].size + sorted_particles[j].size + sys.float_info.epsilon:
+                    continue 
+                potential_collisions.append((sorted_particles[i], sorted_particles[j]))
 
         for p1, p2 in potential_collisions:
             collide(p1, p2)
@@ -141,6 +141,14 @@ class Environment:
             overlap = False
 
             for i, particle in enumerate(self.particles):
+                if particle.x > self.width - particle.size:
+                    particle.x -= particle.x - self.width + particle.size
+                elif particle.x < particle.size:
+                    particle.x += particle.size - particle.x
+                if particle.y > self.height - particle.size:
+                    particle.y -= particle.y - self.height + particle.size
+                elif particle.y < particle.size:
+                    particle.y += particle.size - particle.y
 
                 for particle2 in self.particles[i+1:]:
                     dx = particle.x - particle2.x
