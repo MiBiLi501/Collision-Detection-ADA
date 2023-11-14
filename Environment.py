@@ -11,7 +11,10 @@ def getX(particle):
 def getY(particle):
     return particle.y
 
-def collide(p1, p2, debug = 1):
+def getSize(particle):
+    return particle.size
+
+def collide(p1, p2, debug = 0):
     dx = p1.x - p2.x
     dy = p1.y - p2.y
 
@@ -162,7 +165,7 @@ class Environment:
                         particle.x += math.cos(tangent) * length
                         particle.y += math.sin(tangent) * length
                         particle2.x -= math.cos(tangent) * length
-                        particle.x -= math.sin(tangent) * length
+                        particle2.y -= math.sin(tangent) * length
 
                 if particle.x > self.width - particle.size:
                     particle.x -= particle.x - self.width + particle.size
@@ -204,7 +207,7 @@ class Environment:
             p.move()
             self.bounce(p)
 
-        self.collisionDetection(sweepAndPrune)
+        self.collisionDetection(kDTree)
 
     def collisionDetection(self, func=bruteForce):
         func(self.particles)
