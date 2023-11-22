@@ -11,18 +11,19 @@ def getX(particle):
 def getY(particle):
     return particle.y
 
-def collide(p1, p2, debug = 1):
+def getSize(particle):
+    return particle.size
+
+def collide(p1, p2, debug = 0):
     dx = p1.x - p2.x
     dy = p1.y - p2.y
 
     dist = math.hypot(dx, dy)
     if dist - p1.size - p2.size - sys.float_info.epsilon < 0:
 
-        # get unit normal vector
         n = np.array([p2.x-p1.x, p2.y-p1.y])
         n /= dist
 
-        # get unit tangent vector
         t = np.array([-n[1], n[0]])
 
         v1 = np.array([p1.vx, p1.vy])
@@ -43,6 +44,8 @@ def collide(p1, p2, debug = 1):
 
         return True
     return False
+
+
 
 def bruteForce(particles):
     length = len(particles)
@@ -118,6 +121,8 @@ class Environment:
         self.width = width
         self.height = height
         self.particles = []
+        self.current_algorithm = 'bruteForce'  
+
 
         self.color = (255, 255, 255)
         self.elasticity = 1
@@ -126,6 +131,20 @@ class Environment:
         self.lineY = []
 
         self.pause = False
+
+    def set_collision_algorithm(self, algorithm_name):
+        if algorithm_name in ['bruteForce', 'kDTree', 'sweepAndPrune']:
+            self.current_algorithm = algorithm_name
+        else:
+            raise ValueError("Invalid collision detection algorithm name")
+    
+    def set_particle_count(self, count):
+        current_count = len(self.particles)
+        if count > current_count:
+            for _ in range(count - current_count):
+                self.addRandParticle(10) 
+        elif count < current_count:
+            self.particles = self.particles[:count]
 
     def addRandParticle(self, n):
         for _ in range(n):
@@ -162,7 +181,7 @@ class Environment:
                         particle.x += math.cos(tangent) * length
                         particle.y += math.sin(tangent) * length
                         particle2.x -= math.cos(tangent) * length
-                        particle.x -= math.sin(tangent) * length
+                        particle2.y -= math.sin(tangent) * length
 
                 if particle.x > self.width - particle.size:
                     particle.x -= particle.x - self.width + particle.size
@@ -174,6 +193,11 @@ class Environment:
                     particle.y += particle.size - particle.y
             if not overlap:
                 break
+        
+    def set_particle_speed(self, speed_factor):
+        for particle in self.particles:
+            particle.set_speed(speed_factor)
+
 
     def bounce(self, particle):
         if particle.x > self.width - particle.size:
@@ -196,6 +220,8 @@ class Environment:
             particle.vy *= -1
             particle.speed *= self.elasticity
 
+
+
     def update(self):
         if self.pause:
             return
@@ -204,7 +230,12 @@ class Environment:
             p.move()
             self.bounce(p)
 
-        self.collisionDetection(sweepAndPrune)
+        if self.current_algorithm == 'bruteForce':
+            bruteForce(self.particles)
+        elif self.current_algorithm == 'kDTree':
+            kDTree(self.particles)
+        elif self.current_algorithm == 'sweepAndPrune':
+            sweepAndPrune(self.particles)
 
-    def collisionDetection(self, func=bruteForce):
-        func(self.particles)
+
+    
