@@ -10,6 +10,7 @@ screen = pyg.display.set_mode(WINDOW_SIZE)
 screen.fill(WHITE)
 
 clock = pyg.time.Clock()
+
 fps_font = pyg.font.SysFont("Arial", 20)
 current_algorithm = "Brute Force"
 
@@ -90,11 +91,30 @@ speed_slider = Slider(830, 380, 100, 10, 0.5, 5, 1)
 brute_force_button = Button(800, 200, 150, 50, 'Brute Force')
 
 
+fps_bg = pyg.Surface((25,25))
+fps_bg.fill((255,0,0))
+fps_font = pyg.font.SysFont("Arial", 20)
+
+def show_fps():
+    fps_text = str(int(clock.get_fps()))
+    fps_surface = fps_font.render(fps_text, 1, pyg.Color('black'))
+    screen.blit(fps_bg, (0,0))
+    screen.blit(fps_surface, (0,0))
+
+pyg.display.set_caption("Test")
+pyg.display.flip()
 
 env = Environment(*WINDOW_SIZE)
 env.addRandParticle(50)
 
 running = True
+min_fps = float('inf')
+max_fps = 0
+total_fps = 0
+frame_count = 0
+
+start_time = pyg.time.get_ticks()
+
 while running:
     for event in pyg.event.get():
         if event.type == pyg.QUIT:
