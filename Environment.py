@@ -142,7 +142,7 @@ class Environment:
         current_count = len(self.particles)
         if count > current_count:
             for _ in range(count - current_count):
-                self.addRandParticle(10) 
+                self.addRandParticle(1) 
         elif count < current_count:
             self.particles = self.particles[:count]
 

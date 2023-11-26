@@ -10,7 +10,6 @@ screen = pyg.display.set_mode(WINDOW_SIZE)
 screen.fill(WHITE)
 
 clock = pyg.time.Clock()
-
 fps_font = pyg.font.SysFont("Arial", 20)
 current_algorithm = "Brute Force"
 
@@ -25,10 +24,10 @@ def show_fps_and_particles():
 def toggle_pause(env):
     env.pause = not env.pause
 
-def show_speed():
-    speed_text = f"Speed: {speed_slider.val:.2f}x"
-    speed_surface = fps_font.render(speed_text, True, pyg.Color('black'))
-    screen.blit(speed_surface, (800, 60))  
+# def show_speed():
+#     speed_text = f"Speed: {speed_slider.val:.2f}x"
+#     speed_surface = fps_font.render(speed_text, True, pyg.Color('black'))
+#     screen.blit(speed_surface, (800, 60))  
 
 
 class Button:
@@ -53,14 +52,18 @@ class Button:
         return False
 
 class Slider:
-    def __init__(self, x, y, w, h, min_val, max_val, start_val):
-        self.rect = pyg.Rect(x, y, w, h)
+    def __init__(self, x, y, width, height, min_val, max_val, start_val):
+        self.rect = pyg.Rect(x, y, width, height)
         self.min_val = min_val
         self.max_val = max_val
         self.val = start_val
         self.grabbed = False
-        self.circle_rect = pyg.Rect(x + w // 2, y - h // 2, h, h)
+        self.circle_radius = 10
+        self.circle_rect = pyg.Rect(0, 0, self.circle_radius * 2, self.circle_radius * 2)
+        self.circle_rect.center = self.get_pos_from_val(self.val)
 
+    def get_pos_from_val(self, val):
+        return (self.rect.x + (val - self.min_val) / (self.max_val - self.min_val) * self.rect.width, self.rect.centery)
 
     def draw(self, screen):
         # Draw the line
@@ -77,44 +80,30 @@ class Slider:
             self.grabbed = False
         elif event.type == pyg.MOUSEMOTION and self.grabbed:
             self.circle_rect.x = max(self.rect.x, min(event.pos[0], self.rect.x + self.rect.width))
-            self.val = self.min_val + (self.max_val - self.min_val) * ((self.circle_rect.x - self.rect.x) / self.rect.width)
+            self.val = round(self.min_val + (self.max_val - self.min_val) * ((self.circle_rect.x - self.rect.x) / self.rect.width))
             return True  # Indicates that the value has changed
         return False
+    
+    def set_val(self, val):
+        self.val = val
+        self.circle_rect.center = self.get_pos_from_val(val)
 
 
 # Create buttons and slider
-sweep_prune_button = Button(800, 100, 150, 50, 'Sweep & Prune')
-kd_tree_button = Button(800, 150, 150, 50, 'KD Tree')
-pause_button = Button(800, 250, 150, 50, 'Pause/Resume')
-particle_slider = Slider(830, 330, 100, 10, 10, 100, 30) 
-speed_slider = Slider(830, 380, 100, 10, 0.5, 5, 1)  
-brute_force_button = Button(800, 200, 150, 50, 'Brute Force')
-
-
-fps_bg = pyg.Surface((25,25))
-fps_bg.fill((255,0,0))
-fps_font = pyg.font.SysFont("Arial", 20)
-
-def show_fps():
-    fps_text = str(int(clock.get_fps()))
-    fps_surface = fps_font.render(fps_text, 1, pyg.Color('black'))
-    screen.blit(fps_bg, (0,0))
-    screen.blit(fps_surface, (0,0))
-
-pyg.display.set_caption("Test")
-pyg.display.flip()
+sweep_prune_button = Button(800, 350, 150, 50, 'Sweep & Prune')
+kd_tree_button = Button(800, 400, 150, 50, 'KD Tree')
+pause_button = Button(800, 500, 150, 50, 'Pause/Resume')
+particle_slider = Slider(10, 580, 980, 10, 10, 400, 50) 
+# speed_slider = Slider(830, 380, 100, 10, 0.5, 5, 1)  
+brute_force_button = Button(800, 450, 150, 50, 'Brute Force')
 
 env = Environment(*WINDOW_SIZE)
 env.addRandParticle(50)
 
+text_box = pyg.Rect(50, 50, 140, 32)
+input_string = ""
+
 running = True
-min_fps = float('inf')
-max_fps = 0
-total_fps = 0
-frame_count = 0
-
-start_time = pyg.time.get_ticks()
-
 while running:
     for event in pyg.event.get():
         if event.type == pyg.QUIT:
@@ -137,12 +126,22 @@ while running:
                 toggle_pause(env)
                 print("Simulation Paused" if env.pause else "Simulation Resumed")
         
-        
-        # Handle slider event
-        if particle_slider.handle_event(event):
-            env.set_particle_count(int(particle_slider.val))  # Implement this in Environment
-        if speed_slider.handle_event(event):
-            env.set_particle_speed(speed_slider.val)
+        if event.type == pyg.KEYDOWN:
+            if event.key == pyg.K_BACKSPACE:
+                input_string = input_string[:-1]
+            elif event.unicode.isdigit():
+                input_string += event.unicode
+            elif event.key == pyg.K_RETURN:
+                particle_count = int(input_string)
+                env.set_particle_count(particle_count)
+                particle_slider.set_val(particle_count)
+                input_string = ""
+
+        if env.pause:
+            if particle_slider.handle_event(event):
+                env.set_particle_count(int(particle_slider.val))  
+            # if speed_slider.handle_event(event):
+            #     env.set_particle_speed(speed_slider.val)
 
     screen.fill(env.color)
     env.update()
@@ -159,7 +158,7 @@ while running:
     kd_tree_button.draw(screen)
     pause_button.draw(screen)
     particle_slider.draw(screen)
-    speed_slider.draw(screen) 
+    # speed_slider.draw(screen) 
     brute_force_button.draw(screen)
 
 
@@ -168,13 +167,15 @@ while running:
     particle_count_text = f"Particles: {len(env.particles)}"
     particle_count_surface = fps_font.render(particle_count_text, True, pyg.Color('black'))
     screen.blit(particle_count_surface, (800, 30))
-    show_speed()
+    # show_speed()
 
-    
+    txt_surface = fps_font.render(input_string, True, pyg.Color('black'))
+    screen.blit(txt_surface, (text_box.x+5, text_box.y+5))
 
+    pyg.draw.rect(screen, pyg.Color('black'), text_box, 2)
+  
     pyg.display.flip()
     clock.tick(3000)
-
 
 
 
