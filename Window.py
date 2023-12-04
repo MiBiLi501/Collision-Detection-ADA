@@ -102,6 +102,7 @@ env.addRandParticle(50)
 
 text_box = pyg.Rect(50, 50, 140, 32)
 input_string = ""
+is_text_box_clicked = False
 
 running = True
 while running:
@@ -125,8 +126,20 @@ while running:
             elif pause_button.is_over(mouse_pos):
                 toggle_pause(env)
                 print("Simulation Paused" if env.pause else "Simulation Resumed")
+            
+            if text_box.collidepoint(event.pos):
+                is_text_box_clicked = True
+            else:
+                is_text_box_clicked = False
+
+        if event.type == pyg.MOUSEMOTION:
+            if text_box.collidepoint(event.pos):
+                cursor = pyg.cursors.compile(pyg.cursors.textmarker_strings)
+                pyg.mouse.set_cursor((8, 16), (0, 0), *cursor)
+            else:
+                pyg.mouse.set_cursor(*pyg.cursors.arrow)
         
-        if event.type == pyg.KEYDOWN:
+        if event.type == pyg.KEYDOWN and is_text_box_clicked:
             if event.key == pyg.K_BACKSPACE:
                 input_string = input_string[:-1]
             elif event.unicode.isdigit():
