@@ -89,7 +89,7 @@ class Slider:
 sweep_prune_button = Button(800, 350, 150, 50, 'Sweep & Prune')
 kd_tree_button = Button(800, 400, 150, 50, 'KD Tree')
 pause_button = Button(800, 500, 150, 50, 'Pause/Resume')
-particle_slider = Slider(10, 580, 980, 10, 10, 400, 50) 
+# particle_slider = Slider(10, 580, 980, 10, 10, 400, 50) 
 # speed_slider = Slider(830, 380, 100, 10, 0.5, 5, 1)  
 brute_force_button = Button(800, 450, 150, 50, 'Brute Force')
 
@@ -148,12 +148,12 @@ while running:
             elif event.key == pyg.K_RETURN:
                 particle_count = int(input_string)
                 env.set_particle_count(particle_count)
-                particle_slider.set_val(particle_count)
+                # particle_slider.set_val(particle_count)
                 input_string = ""
 
-        if env.pause:
-            if particle_slider.handle_event(event):
-                env.set_particle_count(int(particle_slider.val))  
+        # if env.pause:
+        #     if particle_slider.handle_event(event):
+        #         env.set_particle_count(int(particle_slider.val))  
         
 
         if event.type == pyg.MOUSEBUTTONDOWN:
@@ -195,7 +195,7 @@ while running:
     sweep_prune_button.draw(screen)
     kd_tree_button.draw(screen)
     pause_button.draw(screen)
-    particle_slider.draw(screen)
+    # particle_slider.draw(screen)
     # speed_slider.draw(screen) 
     brute_force_button.draw(screen)
 
