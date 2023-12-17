@@ -11,19 +11,18 @@ def getX(particle):
 def getY(particle):
     return particle.y
 
-def getSize(particle):
-    return particle.size
-
-def collide(p1, p2, debug = 0):
+def collide(p1, p2, debug = 1):
     dx = p1.x - p2.x
     dy = p1.y - p2.y
 
     dist = math.hypot(dx, dy)
     if dist - p1.size - p2.size - sys.float_info.epsilon < 0:
 
+        # get unit normal vector
         n = np.array([p2.x-p1.x, p2.y-p1.y])
         n /= dist
 
+        # get unit tangent vector
         t = np.array([-n[1], n[0]])
 
         v1 = np.array([p1.vx, p1.vy])
@@ -45,8 +44,6 @@ def collide(p1, p2, debug = 0):
         return True
     return False
 
-
-
 def bruteForce(particles):
     length = len(particles)
     for i in range(length-1):
@@ -54,7 +51,7 @@ def bruteForce(particles):
             collide(particles[i], particles[j])
 
 
-def buildkDTree(particles, depth=0):
+def buildkDTree(particles, uniform=False, depth=0, *, debug=0):
     if len(particles) <= 1:
         return []
 
@@ -69,27 +66,50 @@ def buildkDTree(particles, depth=0):
         median = (get_attribute_func(
             sorted_particles[mid]) + get_attribute_func(sorted_particles[mid - 1])) / 2
 
-    leftSide = []
-    rightSide = []
+    if uniform:
+        left_idx = mid
+        left_particle = sorted_particles[left_idx]
 
-    for particle in sorted_particles:
-        if (get_attribute_func(particle) - particle.size <= median):
-            leftSide.append(particle)
-        if (get_attribute_func(particle) + particle.size >= median):
-            rightSide.append(particle)
+        while left_particle.x - left_particle.size <= median:
+            if left_idx <= length:
+                break
+            left_idx += 1
+            left_particle = sorted_particles[left_idx]
+        
+        right_index = mid
+        right_particle = sorted_particles[right_index]
 
-    if len(leftSide) == length or len(rightSide) == length:
-        return [sorted_particles]
+        while right_particle.x + right_particle.size >= median:
+            if right_index < 0:
+                break
+            right_index -= 1
+            left_particle = sorted_particles[right_index]
+
+        left_side = sorted_particles[:left_idx]
+        right_side = sorted_particles[right_index:]
+
+    else:
+        left_side = []
+        right_side = []
+
+        for particle in sorted_particles:
+            if (get_attribute_func(particle) - particle.size <= median):
+                left_side.append(particle)
+            if (get_attribute_func(particle) + particle.size >= median):
+                right_side.append(particle)
+
+        if len(left_side) == length or len(right_side) == length:
+            return [sorted_particles]
 
     potential_collisions = [
-        potential_collision for potential_collision in buildkDTree(leftSide, depth+1)]
+        potential_collision for potential_collision in buildkDTree(left_side, uniform, depth+1)]
     potential_collisions.extend(
-        [potential_collision for potential_collision in buildkDTree(rightSide, depth+1)])
+        [potential_collision for potential_collision in buildkDTree(right_side, uniform, depth+1)])
     return potential_collisions
 
 
-def kDTree(particles):
-    potential_collisions = buildkDTree(particles)
+def kDTree(particles, uniform=False):
+    potential_collisions = buildkDTree(particles, uniform)
     collisions = set()
     for potential_collision in potential_collisions:
         length = len(potential_collision)
@@ -102,7 +122,7 @@ def kDTree(particles):
         collide(obj1, obj2)
 
 
-def sweepAndPrune(particles):
+def sweepAndPrune(particles, uniform=False):
         sorted_particles = sorted(particles, key=getX)
         length = len(sorted_particles)
 
@@ -110,7 +130,9 @@ def sweepAndPrune(particles):
         for i in range(length-1):
             for j in range(i + 1, length):
                 if sorted_particles[j].x - sorted_particles[i].x >= sorted_particles[i].size + sorted_particles[j].size + sys.float_info.epsilon:
-                    continue 
+                    if uniform:
+                        break
+                    continue
                 potential_collisions.append((sorted_particles[i], sorted_particles[j]))
 
         for p1, p2 in potential_collisions:
@@ -121,8 +143,6 @@ class Environment:
         self.width = width
         self.height = height
         self.particles = []
-        self.current_algorithm = 'bruteForce'  
-
 
         self.color = (255, 255, 255)
         self.elasticity = 1
@@ -132,23 +152,9 @@ class Environment:
 
         self.pause = False
 
-    def set_collision_algorithm(self, algorithm_name):
-        if algorithm_name in ['bruteForce', 'kDTree', 'sweepAndPrune']:
-            self.current_algorithm = algorithm_name
-        else:
-            raise ValueError("Invalid collision detection algorithm name")
-    
-    def set_particle_count(self, count):
-        current_count = len(self.particles)
-        if count > current_count:
-            for _ in range(count - current_count):
-                self.addRandParticle(1) 
-        elif count < current_count:
-            self.particles = self.particles[:count]
-
     def addRandParticle(self, n):
         for _ in range(n):
-            size = random.randint(4, 5)
+            size = random.randint(45, 55)
             x = random.randint(size, self.width-size)
             y = random.randint(size, self.height-size)
             angle = random.uniform(0, math.pi*2)
@@ -193,11 +199,6 @@ class Environment:
                     particle.y += particle.size - particle.y
             if not overlap:
                 break
-        
-    def set_particle_speed(self, speed_factor):
-        for particle in self.particles:
-            particle.set_speed(speed_factor)
-
 
     def bounce(self, particle):
         if particle.x > self.width - particle.size:
@@ -220,8 +221,6 @@ class Environment:
             particle.vy *= -1
             particle.speed *= self.elasticity
 
-
-
     def update(self):
         if self.pause:
             return
@@ -230,12 +229,7 @@ class Environment:
             p.move()
             self.bounce(p)
 
-        if self.current_algorithm == 'bruteForce':
-            bruteForce(self.particles)
-        elif self.current_algorithm == 'kDTree':
-            kDTree(self.particles)
-        elif self.current_algorithm == 'sweepAndPrune':
-            sweepAndPrune(self.particles)
+        self.collisionDetection(sweepAndPrune)
 
-
-    
+    def collisionDetection(self, func=bruteForce):
+        func(self.particles)
