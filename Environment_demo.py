@@ -20,7 +20,7 @@ def collide(p1, p2, debug = 1):
 
         # get unit normal vector
         n = np.array([p2.x-p1.x, p2.y-p1.y])
-        n /= dist
+        n = n/dist
 
         # get unit tangent vector
         t = np.array([-n[1], n[0]])
@@ -154,7 +154,7 @@ class Environment:
 
     def addRandParticle(self, n):
         for _ in range(n):
-            size = random.randint(45, 55)
+            size = random.randint(4, 5)
             x = random.randint(size, self.width-size)
             y = random.randint(size, self.height-size)
             angle = random.uniform(0, math.pi*2)
@@ -231,5 +231,5 @@ class Environment:
 
         self.collisionDetection(sweepAndPrune)
 
-    def collisionDetection(self, func=bruteForce):
+    def collisionDetection(self, func=kDTree):
         func(self.particles)

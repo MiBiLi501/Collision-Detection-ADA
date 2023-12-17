@@ -22,7 +22,7 @@ def collide(p1, p2, debug = 0):
     if dist - p1.size - p2.size - sys.float_info.epsilon < 0:
 
         n = np.array([p2.x-p1.x, p2.y-p1.y])
-        n /= dist
+        n = n/dist
 
         t = np.array([-n[1], n[0]])
 
@@ -162,29 +162,29 @@ class Environment:
         for _ in range(10000):
             overlap = False
 
-            for i, particle in enumerate(self.particles):
-                if particle.x > self.width - particle.size:
-                    particle.x -= particle.x - self.width + particle.size
-                elif particle.x < particle.size:
-                    particle.x += particle.size - particle.x
-                if particle.y > self.height - particle.size:
-                    particle.y -= particle.y - self.height + particle.size
-                elif particle.y < particle.size:
-                    particle.y += particle.size - particle.y
+            potential_collisions = buildkDTree(self.particles)
 
-                for particle2 in self.particles[i+1:]:
-                    dx = particle.x - particle2.x
-                    dy = particle.y - particle2.y
+            collisions = set()
+            for potential_collision in potential_collisions:
+                length = len(potential_collision)
+                for i in range(length - 1):
+                    for j in range(i+1, length):
+                        collisions.add(
+                            frozenset((potential_collision[i], potential_collision[j])))
+    
+            for obj1, obj2 in collisions:
+                dx = obj1.x - obj2.x
+                dy = obj1.y - obj2.y
 
-                    dist = math.hypot(dx, dy)
-                    if dist - particle.size - particle2.size < 0:
-                        overlap = True
-                        tangent = math.atan2(dy, dx)
-                        length = particle.size + particle2.size - dist + sys.float_info.epsilon
-                        particle.x += math.cos(tangent) * length
-                        particle.y += math.sin(tangent) * length
-                        particle2.x -= math.cos(tangent) * length
-                        particle2.y -= math.sin(tangent) * length
+                dist = math.hypot(dx, dy)
+                if dist - obj1.size - obj2.size < 0:
+                    overlap = True
+                    tangent = math.atan2(dy, dx)
+                    length = obj1.size + obj2.size - dist + sys.float_info.epsilon
+                    obj1.x += math.cos(tangent) * length
+                    obj1.y += math.sin(tangent) * length
+                    obj2.x -= math.cos(tangent) * length
+                    obj2.y -= math.sin(tangent) * length
 
                 if particle.x > self.width - particle.size:
                     particle.x -= particle.x - self.width + particle.size
