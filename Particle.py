@@ -24,3 +24,8 @@ class Particle():
     def set_speed(self, speed_factor):
         self.vx = math.cos(self.angle) * self.original_speed * speed_factor
         self.vy = math.sin(self.angle) * self.original_speed * speed_factor
+
+    def update_speed(self, speed_multiplier):
+        self.speed = self.original_speed * speed_multiplier
+        self.vx = math.cos(self.angle) * self.speed
+        self.vy = math.sin(self.angle) * self.speed

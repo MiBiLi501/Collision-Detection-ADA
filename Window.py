@@ -24,10 +24,6 @@ def show_fps_and_particles():
 def toggle_pause(env):
     env.pause = not env.pause
 
-# def show_speed():
-#     speed_text = f"Speed: {speed_slider.val:.2f}x"
-#     speed_surface = fps_font.render(speed_text, True, pyg.Color('black'))
-#     screen.blit(speed_surface, (800, 60))  
 
 
 class Button:
@@ -88,7 +84,7 @@ class Slider:
         self.val = val
         self.circle_rect.center = self.get_pos_from_val(val)
 
-
+ 
 # Create buttons and slider
 sweep_prune_button = Button(800, 350, 150, 50, 'Sweep & Prune')
 kd_tree_button = Button(800, 400, 150, 50, 'KD Tree')
@@ -103,6 +99,11 @@ env.addRandParticle(50)
 text_box = pyg.Rect(50, 50, 140, 32)
 input_string = ""
 is_text_box_clicked = False
+
+speed_text_box = pyg.Rect(50, 100, 140, 32)  # Position it below the particle count text box
+speed_input_string = ""
+is_speed_text_box_clicked = False
+default_speed_multiplier = 1.0
 
 running = True
 while running:
@@ -153,9 +154,33 @@ while running:
         if env.pause:
             if particle_slider.handle_event(event):
                 env.set_particle_count(int(particle_slider.val))  
-            # if speed_slider.handle_event(event):
-            #     env.set_particle_speed(speed_slider.val)
+        
 
+        if event.type == pyg.MOUSEBUTTONDOWN:
+            if speed_text_box.collidepoint(event.pos):
+                is_speed_text_box_clicked = True
+            else:
+                is_speed_text_box_clicked = False
+
+        if event.type == pyg.KEYDOWN and is_speed_text_box_clicked:
+            if event.key == pyg.K_BACKSPACE:
+                speed_input_string = speed_input_string[:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':
+                speed_input_string += event.unicode
+            elif event.key == pyg.K_RETURN:
+                try:
+                    new_speed = float(speed_input_string)
+                    env.set_particle_speed(new_speed * default_speed_multiplier)
+                except ValueError:
+                    print("Invalid speed input")
+                speed_input_string = ""
+
+    # ... [Your existing drawing code here] ...
+
+    # Draw speed text box
+    speed_txt_surface = fps_font.render(speed_input_string, True, pyg.Color('black'))
+    screen.blit(speed_txt_surface, (speed_text_box.x + 5, speed_text_box.y + 5))
+    pyg.draw.rect(screen, pyg.Color('black'), speed_text_box, 2)
     screen.fill(env.color)
     env.update()
 
@@ -184,6 +209,10 @@ while running:
 
     txt_surface = fps_font.render(input_string, True, pyg.Color('black'))
     screen.blit(txt_surface, (text_box.x+5, text_box.y+5))
+
+    speed_txt_surface = fps_font.render(speed_input_string, True, pyg.Color('black'))
+    screen.blit(speed_txt_surface, (speed_text_box.x + 5, speed_text_box.y + 5))
+    pyg.draw.rect(screen, pyg.Color('black'), speed_text_box, 2)
 
     pyg.draw.rect(screen, pyg.Color('black'), text_box, 2)
   

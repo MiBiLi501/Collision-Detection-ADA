@@ -122,6 +122,8 @@ class Environment:
         self.height = height
         self.particles = []
         self.current_algorithm = 'bruteForce'  
+        self.speed_multiplier = 1.0  
+
 
 
         self.color = (255, 255, 255)
@@ -149,10 +151,11 @@ class Environment:
     def addRandParticle(self, n):
         for _ in range(n):
             size = random.randint(4, 5)
-            x = random.randint(size, self.width-size)
-            y = random.randint(size, self.height-size)
-            angle = random.uniform(0, math.pi*2)
-            speed = random.random() * 0.1
+            x = random.randint(size, self.width - size)
+            y = random.randint(size, self.height - size)
+            angle = random.uniform(0, math.pi * 2)
+            # Set the base speed to be the original speed times the current speed multiplier
+            speed = random.random() * 0.1 * self.speed_multiplier  
             particle = Particle(x, y, size, angle, speed)
             self.particles.append(particle)
 
@@ -194,9 +197,10 @@ class Environment:
             if not overlap:
                 break
         
-    def set_particle_speed(self, speed_factor):
+    def set_particle_speed(self, speed_multiplier):
+        self.speed_multiplier = speed_multiplier  # Update the current speed multiplier
         for particle in self.particles:
-            particle.set_speed(speed_factor)
+            particle.update_speed(speed_multiplier)
 
 
     def bounce(self, particle):
@@ -219,6 +223,10 @@ class Environment:
             particle.y = 2 * particle.size - particle.y
             particle.vy *= -1
             particle.speed *= self.elasticity
+    
+    def set_particle_speed(self, speed_multiplier):
+        for particle in self.particles:
+            particle.update_speed(speed_multiplier)
 
 
 
